@@ -1,68 +1,62 @@
 {
   init: (elevators, floors) => {
-    const elevator = elevators[0]
-    const requestedAtFloor = new Map()
-
-    elevator.on("idle", () => {
-      const requested = requestedAtFloor.keys()
-      const currentFloor = elevator.currentFloor()
-
-      // TODO: find the highest to go down or lowest to go up
-      const firstRequested = requested.next()
-
-      if(!firstRequested.done) {
-        elevator.goToFloor(firstRequested.value)
-        requestedAtFloor.delete(firstRequested.value)
-      }
-
-      console.log("idle", currentFloor, requested)
-    })
-
-    elevator.on("floor_button_pressed", (floorNum) => {
-      const direction = elevator.destinationDirection
-      elevator.goToFloor(floorNum)
-      console.log("floor_button_pressed")
-    })
-
-    elevator.on("passing_floor", (floorNum, direction) => {
-      console.log("passing_floor", floorNum, direction)
-    })
-
-    elevator.on("stopped_at_floor", (floorNum) => {
-      console.log("stopped_at_floor", floorNum)
-    })
-
     floors.forEach((floor) => {
-      floor.on("up_button_pressed", () => {
-        const floorNum = floor.floorNum()
+      floor.on('up_button_pressed', () => {})
+      floor.on('down_button_pressed', () => {})
+    })
+    elevators.forEach((elevator) => {
+      elevator.on('idle', () => {
+        elevator.goingUpIndicator(true)
+        elevator.goingDownIndicator(true)
+        const currentFloor = elevator.currentFloor()
+        const floorsToGo = floors.filter(
+          floor => floor.buttonStates.up || floor.buttonStates.down
+        )
+        if(floorsToGo.length > 0) {
+          const farestFloor = floorsToGo
+            .reduce((max, floor) => {
+              const distance = Math.abs(floor.floorNum() - currentFloor)
+              return (max > distance) ? max : floor
+            })
+          elevator.goingUpIndicator(currentFloor <= farestFloor.floorNum())
+          elevator.goingDownIndicator(currentFloor >= farestFloor.floorNum())
+          elevator.goToFloor(farestFloor.floorNum())
+        }
+        console.log('idle')
+      })
 
-        if(elevator.destinationQueue.length > 0) {
-          addRequestedFloor(requestedAtFloor, floorNum, 'up')
-        } else {
+      elevator.on('floor_button_pressed', (floorNum) => {
+        const currentFloor = elevator.currentFloor()
+        const destinationDirection = elevator.destinationDirection()
+        const sortFn = (a, b) => destinationDirection === 'up' ? a < b : a > b
+
+        elevator.destinationQueue.push(floorNum)
+        elevator.destinationQueue.sort(
+          (a, b) => currentFloor < floorNum ? sortFn(a, b) : !sortFn(a, b)
+        )
+        elevator.goingUpIndicator(currentFloor <= elevator.destinationQueue[0])
+        elevator.goingDownIndicator(currentFloor >= elevator.destinationQueue[0])
+        elevator.checkDestinationQueue()
+
+        console.log('floor_button_pressed', floorNum)
+      })
+
+      elevator.on('passing_floor', (floorNum, direction) => {
+        const currentFlour = floors.find(
+          (floor) => floor.floorNum() === floorNum
+        )
+        if(currentFlour && currentFlour.buttonStates[direction]) {
           elevator.goToFloor(floorNum)
         }
-
-        console.log("up_button_pressed", requestedAtFloor)
-      })
-      floor.on("down_button_pressed", () => {
-        const floorNum = floor.floorNum()
-
-        if(elevator.destinationQueue.length > 0) {
-          addRequestedFloor(requestedAtFloor, floorNum, 'down')
-        } else {
-          elevator.goToFloor(floorNum)
-        }
-
-        console.log("down_button_pressed", requestedAtFloor)
+        console.log('passing_floor', floorNum, direction)
       })
 
-      const addRequestedFloor = (requestedAtFloor, floorNum, direction) => {
-        const requestedAtFloorDirections = requestedAtFloor.get(floorNum)
-        if(requestedAtFloorDirections) requestedAtFloorDirections.add(direction)
-        else requestedAtFloor.set(floorNum, new Set([direction]))
-      }
+      elevator.on('stopped_at_floor', (floorNum) => {
+        elevator.goingUpIndicator(true)
+        elevator.goingDownIndicator(true)
+        console.log('stopped_at_floor', floorNum)
+      })
     })
   },
-  update: (dt, elevators, floors) => {
-  }
+  update: (dt, elevators, floors) => {}
 }
