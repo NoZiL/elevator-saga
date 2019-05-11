@@ -7,7 +7,7 @@
     })
 
     elevator.on("floor_button_pressed", (floorNum) => {
-
+      elevator.goToFloor(floorNum)
     })
 
     elevator.on("passing_floor", (floorNum, direction) => {
@@ -20,8 +20,12 @@
 
     floors.forEach((floor) => {
       floor.on("up_button_pressed", () => {
+        const floorNum = floor.floorNum()
+        elevator.goToFloor(floorNum)
       })
       floor.on("down_button_pressed", () => {
+        const floorNum = floor.floorNum()
+        elevator.goToFloor(floorNum)
       })
     })
   },
