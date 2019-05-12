@@ -1,0 +1,21 @@
+current 0-up [] - []
+current 0-up request 3-down -> [3] - []
+current 1-up request 0-up -> [3] - [0]
+current 1-up request 2-up -> [2 3] - [0]
+current 2-up -> [3] - [0]
+current 2-up -> [3] - [0]
+
+up -> [currentFloor, ..., maxFloor, minFloor]
+
+current = 2-up
+[3, 5, 8, 2, 3, 0, 1]
+       ^        ^
+
+current = 2-down
+[1, 0, 2, 3, 5, 3]
+    ^        ^
+
+up -> [3, 5, 7, 0]
+       ^
+    current
+request 2 up
